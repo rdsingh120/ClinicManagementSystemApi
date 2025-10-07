@@ -23,6 +23,10 @@ export const patientProfileSchema = new mongoose.Schema({
   healthCardNumber: {
     type: String,
   },
+  sex: {
+    type: String,
+    enum: ['MALE', 'FEMALE']
+  },
   dob: {
     type: Date,
     validate: value => value <= new Date()
