@@ -3,7 +3,14 @@ import cors from 'cors'
 import express from 'express'
 import { signInValidation, signUpValidation } from './middlewares/validate.js'
 import connectDB from './config/db.js'
-import { signinUser, signupUser } from './controllers/user.controller.js'
+import {
+  getUser,
+  signinUser,
+  signupUser,
+  dashboardController,
+  updateUser,
+} from './controllers/user.controller.js'
+import jwt from 'jsonwebtoken'
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -25,6 +32,11 @@ app.get('/health', (req, res) => {
 
 app.post('/api/signup', signUpValidation, signupUser)
 app.post('/api/signin', signInValidation, signinUser)
+
+app.get('/api/dashboard', dashboardController)
+app.get('/api/user/:id', getUser)
+
+app.post('/api/user/:id', updateUser)
 
 const start = async () => {
   try {
