@@ -36,7 +36,7 @@ app.post('/api/signin', signInValidation, signinUser)
 app.get('/api/dashboard', dashboardController)
 app.get('/api/user/:id', getUser)
 
-app.post('/api/user/:id', updateUser)
+app.put('/api/user/:id', updateUser)
 
 const start = async () => {
   try {
