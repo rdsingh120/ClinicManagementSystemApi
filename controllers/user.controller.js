@@ -110,13 +110,15 @@ export const getUser = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   const {id} = req.params
-  const {updatedUser} = req.body
+  const userUpdate = req.body
 
   try {
-    await User.findByIdAndUpdate(id, updatedUser) 
+    const updatedUser = await User.findByIdAndUpdate(id, userUpdate,{
+      new: true,
+    }) 
     return res.status(201).json({
       success: true,
-      message: 'User profile updated'
+      message: 'User profile updated',
     })   
   } catch (error) {
     return res.status(500).json({
