@@ -42,7 +42,7 @@ export const patientProfileSchema = new mongoose.Schema({
     type: String,
     enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
   },
-  isOrganDonar: {
+  isOrganDonor: {
     type: Boolean,
   },
   medicalHistory: [medicalHistory],
