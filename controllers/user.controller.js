@@ -53,14 +53,14 @@ export const signinUser = async (req, res) => {
         .status(400)
         .json({ success: false, message: 'Invalid email or password' })
     else {
-        userFound.password = undefined
-        const token = jwt.sign(
-          {id: userFound._id},
-          process.env.JWT_SECRET
-        )
-      return res
-        .status(201)
-        .json({ success: true, message: 'SignIn successful', token })
+      userFound.password = undefined
+      const token = jwt.sign({ id: userFound._id }, process.env.JWT_SECRET)
+      return res.status(201).json({
+        success: true,
+        message: 'SignIn successful',
+        token,
+        userFound,
+      })
     }
   } catch (error) {
     return res.status(500).json({
@@ -70,56 +70,24 @@ export const signinUser = async (req, res) => {
   }
 }
 
-export const dashboardController = async (req, res) => {
-  try {
-    const authHeader = await req.headers.authorization
-
-    if (!authHeader)
-      return res.status(401).json({ success: false, message: 'No authHeader' })
-
-    const token = authHeader?.split(' ')[1]
-
-    if (!token) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'No token provided' })
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
-      if (error) {
-        return res.status(403).json({ success: false, message: error.message })
-      }
-
-      return res.status(200).json({ success: true, user: decoded })
-    })
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message })
-  }
-}
-
-export const getUser = async (req, res) => {
-  const {id} = req.params
-  try {
-    const user = await User.findOne({_id: id})
-    return res.status(200).json({success: true, user: user})
-  } catch (error) {
-    return res.status(500).json({ success: true, message: error.message })
-    
-  }
+export const getUser = (req, res) => {
+  if (!req.user)
+    res.status(401).json({ success: false, message: 'User not authenticated' })
+  res.status(200).json({ success: true, user: req.user })
 }
 
 export const updateUser = async (req, res) => {
-  const {id} = req.params
+  const { id } = req.params
   const userUpdate = req.body
 
   try {
-    const updatedUser = await User.findByIdAndUpdate(id, userUpdate,{
+    const updatedUser = await User.findByIdAndUpdate(id, userUpdate, {
       new: true,
-    }) 
+    })
     return res.status(201).json({
       success: true,
       message: 'User profile updated',
-    })   
+    })
   } catch (error) {
     return res.status(500).json({
       success: false,
