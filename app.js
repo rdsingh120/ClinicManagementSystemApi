@@ -7,10 +7,9 @@ import {
   getUser,
   signinUser,
   signupUser,
-  dashboardController,
   updateUser,
 } from './controllers/user.controller.js'
-import jwt from 'jsonwebtoken'
+import auth from './middlewares/auth.middleware.js'
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -33,8 +32,7 @@ app.get('/health', (req, res) => {
 app.post('/api/signup', signUpValidation, signupUser)
 app.post('/api/signin', signInValidation, signinUser)
 
-app.get('/api/dashboard', dashboardController)
-app.get('/api/user/:id', getUser)
+app.get('/api/dashboard', auth, getUser)
 
 app.put('/api/user/:id', updateUser)
 
