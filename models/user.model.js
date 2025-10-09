@@ -35,10 +35,10 @@ const userSchema = new mongoose.Schema({
   patientProfile: patientProfileSchema,
   doctorProfile: doctorProfileSchema,
 
-  isProfileComplete: {
+  isProfileActive: {
     type: Boolean,
     required: true,
-    default: false
+    default: true
   }
 }, {
     timestamps: true
