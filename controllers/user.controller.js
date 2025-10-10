@@ -31,7 +31,7 @@ export const signupUser = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: 'Internal Server Error',
     })
   }
 }
@@ -65,7 +65,7 @@ export const signinUser = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: 'Internal Server Error',
     })
   }
 }
@@ -76,6 +76,23 @@ export const getUser = (req, res) => {
   res.status(200).json({ success: true, user: req.user })
 }
 
+export const getUsers = async (req, res) => {
+  const { role } = req.params
+  
+  try {
+    const users = await User.find({role: role.toUpperCase()})
+    res.status(200).json({
+      success: true,
+      users,
+    })
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    })
+  }
+}
+
 export const updateUser = async (req, res) => {
   const { id } = req.params
   const userUpdate = req.body
@@ -83,15 +100,16 @@ export const updateUser = async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(id, userUpdate, {
       new: true,
-    })
+    }).select('-password')
     return res.status(201).json({
       success: true,
       message: 'User profile updated',
+      updatedUser,
     })
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: 'Internal Server Error',
     })
   }
 }
