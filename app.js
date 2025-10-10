@@ -5,6 +5,7 @@ import { signInValidation, signUpValidation } from './middlewares/validate.js'
 import connectDB from './config/db.js'
 import {
   getUser,
+  getUsers,
   signinUser,
   signupUser,
   updateUser,
@@ -32,7 +33,8 @@ app.get('/health', (req, res) => {
 app.post('/api/signup', signUpValidation, signupUser)
 app.post('/api/signin', signInValidation, signinUser)
 
-app.get('/api/dashboard', auth, getUser)
+app.get('/api/me', auth, getUser)
+app.get('/api/users/:role', getUsers)
 
 app.put('/api/user/:id', updateUser)
 
