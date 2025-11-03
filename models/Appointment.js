@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// simple human-friendly code like AB12-CD34
+// simple code like AB12-CD34 
 const genCode = () =>
   Math.random().toString(36).slice(2, 6).toUpperCase() + "-" +
   Math.random().toString(36).slice(2, 6).toUpperCase();
