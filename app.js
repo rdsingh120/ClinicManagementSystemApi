@@ -12,7 +12,8 @@ import {
   updateUser,
 } from './controllers/user.controller.js'
 import auth from './middlewares/auth.middleware.js'
-import appointmentRoutes from "./routes/appointmentRoutes.js";
+import appointmentRoutes from "./routes/appointmentRoutes.js"; 
+import availabilityRoutes from "./routes/availabilityRoutes.js";
 
 
 
@@ -44,6 +45,7 @@ app.put('/api/user/:id', updateUser)
 
 
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/availability", availabilityRoutes);
 
 
 const start = async () => {
