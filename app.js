@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import cors from 'cors'
+import helmet from 'helmet';
 import mongoose from "mongoose";
 import express from 'express'
 import { signInValidation, signUpValidation } from './middlewares/validate.js'
@@ -24,6 +25,7 @@ const app = express()
 const port = process.env.PORT || 3000
 const mongoURI = process.env.MONGO_URI
 
+app.use(helmet());
 app.use(
   cors({
     origin: 'http://localhost:5173',
