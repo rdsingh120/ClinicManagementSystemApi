@@ -22,7 +22,7 @@ const RecurringWindowSchema = new mongoose.Schema(
 
 const AvailabilitySchema = new mongoose.Schema(
   {
-    doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
     // One-off windows for specific dates
     dateWindows: [TimeWindowSchema],

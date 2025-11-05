@@ -14,6 +14,9 @@ import {
 import auth from './middlewares/auth.middleware.js'
 import appointmentRoutes from "./routes/appointmentRoutes.js"; 
 import availabilityRoutes from "./routes/availabilityRoutes.js";
+import Appointment from "./models/Appointment.js";
+import Availability from "./models/Availability.js";
+
 
 
 
@@ -48,9 +51,15 @@ app.use("/api/appointments", appointmentRoutes);
 app.use("/api/availability", availabilityRoutes);
 
 
+
+
+
 const start = async () => {
   try {
     await connectDB(mongoURI)
+    await Appointment.syncIndexes();
+    await Availability.syncIndexes();
+    
     app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`)
     )

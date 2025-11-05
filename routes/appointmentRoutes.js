@@ -8,7 +8,9 @@ import {
   confirmAppointment,
   cancelAppointment,
   deleteAppointment
-} from "../controllers/appointmentController.js";
+} from "../controllers/appointment.js";
+
+
 
 // Optional middleware imports (add later if you have auth)
 // import { auth } from "../middlewares/auth.js";
