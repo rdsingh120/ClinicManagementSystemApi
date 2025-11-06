@@ -13,12 +13,11 @@ import {
   updateUser,
 } from './controllers/user.controller.js'
 import auth from './middlewares/auth.middleware.js'
-import appointmentRoutes from "./routes/appointmentRoutes.js"; 
+import appointmentRoutes from "./routes/appointmentRoutes.js";
 import availabilityRoutes from "./routes/availabilityRoutes.js";
 import Appointment from "./models/Appointment.js";
 import Availability from "./models/Availability.js";
-
-
+import doctorProfileRoutes from './routes/doctorProfile.routes.js'
 
 
 const app = express()
@@ -52,7 +51,7 @@ app.put('/api/user/:id', updateUser)
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/availability", availabilityRoutes);
 
-
+app.use('/api/doctors', doctorProfileRoutes)
 
 
 
@@ -61,7 +60,7 @@ const start = async () => {
     await connectDB(mongoURI)
     await Appointment.syncIndexes();
     await Availability.syncIndexes();
-    
+
     app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`)
     )
