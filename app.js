@@ -19,7 +19,6 @@ import Appointment from "./models/Appointment.js";
 import Availability from "./models/Availability.js";
 import doctorProfileRoutes from './routes/doctorProfile.routes.js'
 
-
 const app = express()
 const port = process.env.PORT || 3000
 const mongoURI = process.env.MONGO_URI
@@ -47,13 +46,10 @@ app.get('/api/users/:role', getUsers)
 
 app.put('/api/user/:id', updateUser)
 
-
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/availability", availabilityRoutes);
 
 app.use('/api/doctors', doctorProfileRoutes)
-
-
 
 const start = async () => {
   try {
