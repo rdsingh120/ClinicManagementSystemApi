@@ -1,3 +1,4 @@
+// controllers/doctorProfile.controller.js
 import User from '../models/user.model.js'
 
 // GET /api/doctors/me/profile
@@ -10,8 +11,18 @@ export const getDoctorProfile = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' })
         }
+
+        // For non-doctors, return an empty profile instead of 403
         if (user.role !== 'DOCTOR') {
-            return res.status(403).json({ success: false, message: 'Only doctors have a doctor profile' })
+            return res.status(200).json({
+                success: true,
+                doctor: {},
+                basic: {
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email
+                }
+            })
         }
 
         return res.status(200).json({
@@ -23,7 +34,7 @@ export const getDoctorProfile = async (req, res) => {
                 email: user.email
             }
         })
-    } catch (error) {
+    } catch (_err) {
         return res.status(500).json({ success: false, message: 'Internal Server Error' })
     }
 }
@@ -50,7 +61,7 @@ export const updateDoctorProfile = async (req, res) => {
             experience
         } = req.body || {}
 
-        // Build a precise $set object so we don’t wipe fields unintentionally
+        // Build a precise $set so we don’t wipe fields unintentionally
         const set = {}
         if (medicalLicenceNumber !== undefined) set['doctorProfile.medicalLicenceNumber'] = medicalLicenceNumber
         if (specialty !== undefined) set['doctorProfile.specialty'] = specialty
@@ -60,7 +71,6 @@ export const updateDoctorProfile = async (req, res) => {
         if (Array.isArray(education)) set['doctorProfile.education'] = education
         if (Array.isArray(experience)) set['doctorProfile.experience'] = experience
 
-        // If nothing to update
         if (Object.keys(set).length === 0) {
             return res.status(400).json({ success: false, message: 'No updatable fields provided' })
         }
@@ -68,7 +78,7 @@ export const updateDoctorProfile = async (req, res) => {
         const updated = await User.findByIdAndUpdate(
             doctorId,
             { $set: set },
-            { new: true, runValidators: true }
+            { new: true, runValidators: true, context: 'query' } // keep validators + proper context
         ).select('doctorProfile')
 
         return res.status(200).json({
@@ -77,13 +87,33 @@ export const updateDoctorProfile = async (req, res) => {
             doctor: updated.doctorProfile || {}
         })
     } catch (error) {
-        // Handle unique index errors (e.g., medicalLicenceNumber unique)
+        // Duplicate unique field (e.g., medicalLicenceNumber)
         if (error?.code === 11000) {
             return res.status(409).json({
                 success: false,
-                message: 'Duplicate value for a unique field (e.g., medicalLicenceNumber already in use)'
+                message: 'Duplicate value for a unique field',
+                fields: Object.keys(error.keyPattern || {})
             })
         }
+
+        // Mongoose validation errors -> return concrete messages
+        if (error?.name === 'ValidationError') {
+            const messages = Object.values(error.errors || {}).map(e => e.message)
+            return res.status(400).json({
+                success: false,
+                message: messages[0] || 'Validation failed',
+                errors: messages
+            })
+        }
+
+        // Casting/format errors
+        if (error?.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid value for ${error.path}`
+            })
+        }
+
         return res.status(500).json({ success: false, message: 'Internal Server Error' })
     }
 }
