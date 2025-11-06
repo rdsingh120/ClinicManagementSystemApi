@@ -2,6 +2,8 @@ import User from '../models/user.model.js'
 import { comparePassword, hashPassword } from '../utils/bcrypt.util.js'
 import jwt from 'jsonwebtoken'
 
+
+
 export const signupUser = async (req, res) => {
   const user = req.body
   const { role, firstName, lastName, email, password } = user
