@@ -196,3 +196,26 @@ export const getDoctorPhoto = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' })
     }
 }
+
+// GET /api/doctors/:id/photo
+export const getDoctorPhotoById = async (req, res) => {
+    try {
+        const { id } = req.params
+        const user = await User.findById(id).select('role doctorProfile')
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' })
+        }
+        if (user.role !== 'DOCTOR') {
+            return res.status(400).json({ success: false, message: 'Not a doctor' })
+        }
+        const photo = user.doctorProfile?.photo
+        if (!photo?.data || !photo?.contentType) {
+            return res.status(404).json({ success: false, message: 'No photo found' })
+        }
+        res.set('Content-Type', photo.contentType)
+        res.set('Cache-Control', 'no-store, max-age=0')
+        return res.status(200).send(photo.data)
+    } catch (_err) {
+        return res.status(500).json({ success: false, message: 'Internal Server Error' })
+    }
+}

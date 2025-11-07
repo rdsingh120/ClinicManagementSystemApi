@@ -4,7 +4,8 @@ import {
     getDoctorProfile,
     updateDoctorProfile,
     uploadDoctorPhoto,
-    getDoctorPhoto
+    getDoctorPhoto,
+    getDoctorPhotoById,
 } from '../controllers/doctorProfile.controller.js'
 
 const router = express.Router()
@@ -13,8 +14,11 @@ const router = express.Router()
 router.get('/me/profile', auth, getDoctorProfile)
 router.put('/me/profile', auth, updateDoctorProfile)
 
-// photo buffer endpoints
+// photo buffer endpoints (self)
 router.post('/me/profile/photo', auth, uploadDoctorPhoto)
 router.get('/me/profile/photo', auth, getDoctorPhoto)
+
+// fetch a specific doctor's photo by id (for patient browsing)
+router.get('/:id/photo', auth, getDoctorPhotoById)
 
 export default router
