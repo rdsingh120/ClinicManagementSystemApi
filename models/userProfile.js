@@ -98,6 +98,15 @@ export const doctorProfileSchema = new Schema({
       message: 'Invalid phone format'
     }
   },
+  workEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    validate: {
+      validator: v => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+      message: 'Invalid work email format'
+    }
+  },
   specialty: String,
   bio: String,
   timezone: {

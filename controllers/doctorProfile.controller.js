@@ -46,7 +46,7 @@ export const getDoctorProfile = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            doctor: { ...doc.toObject?.() ?? doc, photoUrl },
+            doctor: { ...(doc.toObject?.() ?? doc), photoUrl },
             basic: base.basic
         })
     } catch (_err) {
@@ -70,16 +70,19 @@ export const updateDoctorProfile = async (req, res) => {
             medicalLicenceNumber,
             specialty,
             phone,
+            workEmail,         // NEW: accept workEmail from payload
             bio,
             timezone,
             education,
             experience
         } = req.body || {}
 
+        // Build a precise $set so we don’t wipe fields unintentionally
         const set = {}
         if (medicalLicenceNumber !== undefined) set['doctorProfile.medicalLicenceNumber'] = medicalLicenceNumber
         if (specialty !== undefined) set['doctorProfile.specialty'] = specialty
         if (phone !== undefined) set['doctorProfile.phone'] = phone
+        if (workEmail !== undefined) set['doctorProfile.workEmail'] = workEmail // NEW
         if (bio !== undefined) set['doctorProfile.bio'] = bio
         if (timezone !== undefined) set['doctorProfile.timezone'] = timezone
         if (Array.isArray(education)) set['doctorProfile.education'] = education
