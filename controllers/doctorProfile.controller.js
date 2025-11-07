@@ -1,4 +1,15 @@
+// controllers/doctorProfile.controller.js
+import multer from 'multer'
 import User from '../models/user.model.js'
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+        if (!/^image\//.test(file.mimetype)) return cb(new Error('Only image files are allowed'))
+        cb(null, true)
+    }
+})
 
 // GET /api/doctors/me/profile
 export const getDoctorProfile = async (req, res) => {
@@ -10,20 +21,35 @@ export const getDoctorProfile = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' })
         }
-        if (user.role !== 'DOCTOR') {
-            return res.status(403).json({ success: false, message: 'Only doctors have a doctor profile' })
-        }
 
-        return res.status(200).json({
+        const base = {
             success: true,
-            doctor: user.doctorProfile || {},
+            doctor: {},
             basic: {
                 firstName: user.firstName,
                 lastName: user.lastName,
                 email: user.email
             }
+        }
+
+        if (user.role !== 'DOCTOR') {
+            return res.status(200).json(base)
+        }
+
+        const doc = user.doctorProfile || {}
+        // If a photo buffer exists, expose an auth-protected endpoint for the client to fetch
+        let photoUrl
+        if (doc.photo && doc.photo.data && doc.photo.contentType) {
+            const ver = doc.photo.updatedAt ? `?v=${new Date(doc.photo.updatedAt).getTime()}` : ''
+            photoUrl = `/api/doctors/me/profile/photo${ver}`
+        }
+
+        return res.status(200).json({
+            success: true,
+            doctor: { ...(doc.toObject?.() ?? doc), photoUrl },
+            basic: base.basic
         })
-    } catch (error) {
+    } catch (_err) {
         return res.status(500).json({ success: false, message: 'Internal Server Error' })
     }
 }
@@ -44,23 +70,24 @@ export const updateDoctorProfile = async (req, res) => {
             medicalLicenceNumber,
             specialty,
             phone,
+            workEmail,         // NEW: accept workEmail from payload
             bio,
             timezone,
             education,
             experience
         } = req.body || {}
 
-        // Build a precise $set object so we don’t wipe fields unintentionally
+        // Build a precise $set so we don’t wipe fields unintentionally
         const set = {}
         if (medicalLicenceNumber !== undefined) set['doctorProfile.medicalLicenceNumber'] = medicalLicenceNumber
         if (specialty !== undefined) set['doctorProfile.specialty'] = specialty
         if (phone !== undefined) set['doctorProfile.phone'] = phone
+        if (workEmail !== undefined) set['doctorProfile.workEmail'] = workEmail // NEW
         if (bio !== undefined) set['doctorProfile.bio'] = bio
         if (timezone !== undefined) set['doctorProfile.timezone'] = timezone
         if (Array.isArray(education)) set['doctorProfile.education'] = education
         if (Array.isArray(experience)) set['doctorProfile.experience'] = experience
 
-        // If nothing to update
         if (Object.keys(set).length === 0) {
             return res.status(400).json({ success: false, message: 'No updatable fields provided' })
         }
@@ -68,7 +95,7 @@ export const updateDoctorProfile = async (req, res) => {
         const updated = await User.findByIdAndUpdate(
             doctorId,
             { $set: set },
-            { new: true, runValidators: true }
+            { new: true, runValidators: true, context: 'query' }
         ).select('doctorProfile')
 
         return res.status(200).json({
@@ -77,13 +104,95 @@ export const updateDoctorProfile = async (req, res) => {
             doctor: updated.doctorProfile || {}
         })
     } catch (error) {
-        // Handle unique index errors (e.g., medicalLicenceNumber unique)
         if (error?.code === 11000) {
             return res.status(409).json({
                 success: false,
-                message: 'Duplicate value for a unique field (e.g., medicalLicenceNumber already in use)'
+                message: 'Duplicate value for a unique field',
+                fields: Object.keys(error.keyPattern || {})
             })
         }
+        if (error?.name === 'ValidationError') {
+            const messages = Object.values(error.errors || {}).map(e => e.message)
+            return res.status(400).json({
+                success: false,
+                message: messages[0] || 'Validation failed',
+                errors: messages
+            })
+        }
+        if (error?.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid value for ${error.path}`
+            })
+        }
+        return res.status(500).json({ success: false, message: 'Internal Server Error' })
+    }
+}
+
+// POST /api/doctors/me/profile/photo
+export const uploadDoctorPhoto = [
+    upload.single('photo'),
+    async (req, res) => {
+        try {
+            const doctorId = req.user?._id || req.user?.id
+            const current = await User.findById(doctorId).select('role doctorProfile')
+            if (!current) {
+                return res.status(404).json({ success: false, message: 'User not found' })
+            }
+            if (current.role !== 'DOCTOR') {
+                return res.status(403).json({ success: false, message: 'Only doctors can upload a photo' })
+            }
+            if (!req.file) {
+                return res.status(400).json({ success: false, message: 'No file uploaded' })
+            }
+
+            current.doctorProfile = current.doctorProfile || {}
+            current.doctorProfile.photo = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+                updatedAt: new Date()
+            }
+
+            await current.save()
+
+            const ver = current.doctorProfile.photo.updatedAt.getTime()
+            return res.status(200).json({
+                success: true,
+                message: 'Photo updated',
+                photoUrl: `/api/doctors/me/profile/photo?v=${ver}`
+            })
+        } catch (err) {
+            if (err?.message === 'Only image files are allowed') {
+                return res.status(400).json({ success: false, message: err.message })
+            }
+            if (err?.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ success: false, message: 'File too large (max 5MB)' })
+            }
+            return res.status(500).json({ success: false, message: 'Internal Server Error' })
+        }
+    }
+]
+
+// GET /api/doctors/me/profile/photo
+export const getDoctorPhoto = async (req, res) => {
+    try {
+        const doctorId = req.user?._id || req.user?.id
+        const user = await User.findById(doctorId).select('role doctorProfile')
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' })
+        }
+        if (user.role !== 'DOCTOR') {
+            return res.status(403).json({ success: false, message: 'Only doctors can access photo' })
+        }
+        const photo = user.doctorProfile?.photo
+        if (!photo?.data || !photo?.contentType) {
+            return res.status(404).json({ success: false, message: 'No photo found' })
+        }
+        res.set('Content-Type', photo.contentType)
+        // prevent caching stale blobs when user uploads a new one
+        res.set('Cache-Control', 'no-store, max-age=0')
+        return res.status(200).send(photo.data)
+    } catch (_err) {
         return res.status(500).json({ success: false, message: 'Internal Server Error' })
     }
 }

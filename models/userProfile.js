@@ -19,7 +19,6 @@ const medicalHistory = new mongoose.Schema(
   }
 )
 
-
 export const patientProfileSchema = new mongoose.Schema({
   healthCardNumber: {
     type: String,
@@ -52,7 +51,6 @@ export const patientProfileSchema = new mongoose.Schema({
     _id: false
   })
 
-
 // -------- Doctor Profile --------
 const educationSchema = new Schema({
   school: String,
@@ -81,6 +79,12 @@ experienceSchema.path('endDate').validate(function (v) {
   return v >= this.startDate
 }, 'Experience endDate must be after startDate')
 
+const photoSchema = new Schema({
+  data: Buffer,
+  contentType: String,
+  updatedAt: Date
+}, { _id: false })
+
 export const doctorProfileSchema = new Schema({
   medicalLicenceNumber: {
     type: String,
@@ -92,6 +96,15 @@ export const doctorProfileSchema = new Schema({
     validate: {
       validator: v => !v || /^\+?[0-9().\-\s]{7,20}$/.test(v),
       message: 'Invalid phone format'
+    }
+  },
+  workEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    validate: {
+      validator: v => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+      message: 'Invalid work email format'
     }
   },
   specialty: String,
@@ -106,4 +119,5 @@ export const doctorProfileSchema = new Schema({
   },
   education: { type: [educationSchema], default: [] },
   experience: { type: [experienceSchema], default: [] },
+  photo: photoSchema
 }, { _id: false })
