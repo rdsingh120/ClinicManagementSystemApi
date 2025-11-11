@@ -11,6 +11,7 @@ import {
   signinUser,
   signupUser,
   updateUser,
+  listDoctors,
 } from './controllers/user.controller.js'
 import auth from './middlewares/auth.middleware.js'
 import appointmentRoutes from "./routes/appointmentRoutes.js";
@@ -27,6 +28,9 @@ app.use(helmet());
 app.use(
   cors({
     origin: 'http://localhost:5173',
+    credentials: true,         // MUST be true if you send cookies
+    methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization"]
   })
 )
 app.use(express.json())
@@ -40,15 +44,14 @@ app.get('/health', (req, res) => {
 
 app.post('/api/signup', signUpValidation, signupUser)
 app.post('/api/signin', signInValidation, signinUser)
-
 app.get('/api/me', auth, getUser)
 app.get('/api/users/:role', getUsers)
-
 app.put('/api/user/:id', updateUser)
+app.get('/api/doctors', listDoctors)
+
 
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/availability", availabilityRoutes);
-
 app.use('/api/doctors', doctorProfileRoutes)
 
 const start = async () => {
