@@ -2,6 +2,8 @@ import User from '../models/user.model.js'
 import { comparePassword, hashPassword } from '../utils/bcrypt.util.js'
 import jwt from 'jsonwebtoken'
 
+
+
 export const signupUser = async (req, res) => {
   const user = req.body
   const { role, firstName, lastName, email, password } = user
@@ -113,3 +115,40 @@ export const updateUser = async (req, res) => {
     })
   }
 }
+export const listDoctors = async (req, res) => {
+    try {
+        const { q = '', limit = 50, skip = 0 } = req.query;
+
+        // Basic filter: only doctors
+        const filter = { role: 'DOCTOR' };
+
+        // Optional search by name or specialty
+        if (q) {
+            filter.$or = [
+                { firstName: { $regex: q, $options: 'i' } },
+                { lastName: { $regex: q, $options: 'i' } },
+                { 'doctorProfile.specialty': { $regex: q, $options: 'i' } },
+            ];
+        }
+
+        // Query doctors (exclude sensitive fields)
+        const doctors = await User.find(filter)
+            .select('_id firstName lastName doctorProfile.specialty doctorProfile.workEmail doctorProfile.bio')
+            .limit(Number(limit))
+            .skip(Number(skip))
+            .lean();
+
+        if (!Array.isArray(doctors) || doctors.length === 0) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        return res.status(200).json({
+            success: true,
+            count: doctors.length,
+            data: doctors,
+        });
+    } catch (err) {
+        console.error('Error listing doctors:', err);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};

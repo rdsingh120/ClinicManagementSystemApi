@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    
+
   },
   lastName: {
     type: String,
@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
   patientProfile: patientProfileSchema,
-  doctorProfile: doctorProfileSchema,
+  doctorProfile: { type: doctorProfileSchema, default: () => ({}) },
 
   isProfileActive: {
     type: Boolean,
@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     default: true
   }
 }, {
-    timestamps: true
+  timestamps: true
 })
 
 const User = new mongoose.model('User', userSchema)

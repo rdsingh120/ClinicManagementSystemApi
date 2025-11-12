@@ -1,5 +1,7 @@
 import 'dotenv/config'
 import cors from 'cors'
+import helmet from 'helmet';
+import mongoose from "mongoose";
 import express from 'express'
 import { signInValidation, signUpValidation } from './middlewares/validate.js'
 import connectDB from './config/db.js'
@@ -9,16 +11,26 @@ import {
   signinUser,
   signupUser,
   updateUser,
+  listDoctors,
 } from './controllers/user.controller.js'
 import auth from './middlewares/auth.middleware.js'
+import appointmentRoutes from "./routes/appointmentRoutes.js";
+import availabilityRoutes from "./routes/availabilityRoutes.js";
+import Appointment from "./models/Appointment.js";
+import Availability from "./models/Availability.js";
+import doctorProfileRoutes from './routes/doctorProfile.routes.js'
 
 const app = express()
 const port = process.env.PORT || 3000
 const mongoURI = process.env.MONGO_URI
 
+app.use(helmet());
 app.use(
   cors({
     origin: 'http://localhost:5173',
+    credentials: true,         // MUST be true if you send cookies
+    methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization"]
   })
 )
 app.use(express.json())
@@ -32,15 +44,22 @@ app.get('/health', (req, res) => {
 
 app.post('/api/signup', signUpValidation, signupUser)
 app.post('/api/signin', signInValidation, signinUser)
-
 app.get('/api/me', auth, getUser)
 app.get('/api/users/:role', getUsers)
-
 app.put('/api/user/:id', updateUser)
+app.get('/api/doctors', listDoctors)
+
+
+app.use("/api/appointments", appointmentRoutes);
+app.use("/api/availability", availabilityRoutes);
+app.use('/api/doctors', doctorProfileRoutes)
 
 const start = async () => {
   try {
     await connectDB(mongoURI)
+    await Appointment.syncIndexes();
+    await Availability.syncIndexes();
+
     app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`)
     )
