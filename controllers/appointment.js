@@ -414,3 +414,81 @@ export const deleteAppointment = async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+// <--------------ERDEM------------------>
+// DOCTOR – My scheduled (upcoming) appointments
+// GET /api/appointments/my-schedule
+export const getMyScheduledAppointmentsAsDoctor = async (req, res) => {
+  try {
+    const doctorId = req.user?.id || req.user?._id;
+
+    if (!doctorId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: no doctor id on request",
+      });
+    }
+
+    const now = new Date();
+
+    const appointments = await Appointment.find({
+      doctorId,
+      status: { $in: ["pending", "confirmed"] },
+      startTime: { $gte: now },
+    })
+      .populate("patientId", "firstName lastName email")
+      .sort({ startTime: 1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: appointments.length,
+      data: appointments,
+    });
+  } catch (e) {
+    console.error("getMyScheduledAppointmentsAsDoctor error:", e);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load doctor schedule",
+    });
+  }
+};
+
+// PATIENT – My previous (past) appointments / history
+// GET /api/appointments/my-history
+export const getMyPastAppointmentsAsPatient = async (req, res) => {
+  try {
+    const patientId = req.user?.id || req.user?._id;
+
+    if (!patientId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: no patient id on request",
+      });
+    }
+
+    const now = new Date();
+
+    const appointments = await Appointment.find({
+      patientId,
+      $or: [
+        { status: "completed" },
+        { endTime: { $lt: now } },
+      ],
+    })
+      .populate("doctorId", "firstName lastName email specialty")
+      .sort({ startTime: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: appointments.length,
+      data: appointments,
+    });
+  } catch (e) {
+    console.error("getMyPastAppointmentsAsPatient error:", e);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load appointment history",
+    });
+  }
+};
