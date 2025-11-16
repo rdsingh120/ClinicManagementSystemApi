@@ -27,7 +27,7 @@ router.get("/", listAppointments);
 router.get("/:id", getAppointmentById);
 router.put("/:id", updateAppointment);
 router.post("/:id/confirm", confirmAppointment);
-router.post("/:id/cancel", cancelAppointment);
+router.post("/:id/cancel", auth, cancelAppointment);
 router.delete("/:id", deleteAppointment);
 
 
