@@ -1,4 +1,3 @@
-// controllers/doctorProfile.controller.js
 import multer from 'multer'
 import User from '../models/user.model.js'
 
@@ -10,6 +9,47 @@ const upload = multer({
         cb(null, true)
     }
 })
+
+// GET /api/doctors/:id
+// Public doctor profile (used when a patient clicks a card)
+export const getDoctorPublicProfile = async (req, res) => {
+    try {
+        const { id } = req.params
+        const user = await User.findById(id)
+            .select('firstName lastName email role doctorProfile')
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' })
+        }
+        if (user.role !== 'DOCTOR') {
+            return res.status(400).json({ success: false, message: 'Not a doctor' })
+        }
+
+        const doc = user.doctorProfile || {}
+        let photoUrl
+        if (doc.photo && doc.photo.data && doc.photo.contentType) {
+            const ver = doc.photo.updatedAt ? `?v=${new Date(doc.photo.updatedAt).getTime()}` : ''
+            photoUrl = `/api/doctors/${user._id}/photo${ver}`
+        }
+
+        return res.status(200).json({
+            success: true,
+            doctor: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                doctorProfile: {
+                    ...(doc.toObject?.() ?? doc),
+                    photoUrl
+                }
+            }
+        })
+    } catch (_err) {
+        return res.status(500).json({ success: false, message: 'Internal Server Error' })
+    }
+}
 
 // GET /api/doctors/me/profile
 export const getDoctorProfile = async (req, res) => {
@@ -215,6 +255,143 @@ export const getDoctorPhotoById = async (req, res) => {
         res.set('Content-Type', photo.contentType)
         res.set('Cache-Control', 'no-store, max-age=0')
         return res.status(200).send(photo.data)
+    } catch (_err) {
+        return res.status(500).json({ success: false, message: 'Internal Server Error' })
+    }
+}
+
+// GET /api/doctors/search
+// Search & paginate doctors for the "Find a Doctor" page
+export const searchDoctors = async (req, res) => {
+    try {
+        const {
+            search = '',
+            specialty,
+            page = '1',
+            limit = '12'
+        } = req.query || {}
+
+        const pageNum = Math.max(parseInt(page, 10) || 1, 1)
+        const pageSize = Math.max(parseInt(limit, 10) || 12, 1)
+
+        const normalizedTerm = String(search || '').trim().toLowerCase()
+        const normalizedSpecialty = String(specialty || '').trim().toLowerCase()
+        const isGeneralPractitionerSearch = normalizedTerm === 'general practitioner'
+        const isGeneralPractitionerFilter = normalizedSpecialty === 'general practitioner'
+
+        // Base query: only doctors.
+        // IMPORTANT: do NOT filter by specialty in the DB when "General Practitioner"
+        // is selected, because we also want doctors with empty/null specialty.
+        const baseQuery = { role: 'DOCTOR' }
+        if (specialty && !isGeneralPractitionerFilter) {
+            baseQuery['doctorProfile.specialty'] = specialty
+        }
+
+        const doctors = await User.find(baseQuery)
+            .select('firstName lastName email role doctorProfile')
+            .lean()
+
+        let filtered = doctors
+
+        // 1) Apply specialty filter (dropdown) first
+        if (specialty) {
+            filtered = filtered.filter((d) => {
+                const rawSpec = d.doctorProfile?.specialty || ''
+                const spec = rawSpec.trim()
+
+                if (isGeneralPractitionerFilter) {
+                    // "General Practitioner" filter includes:
+                    //  - doctors with spec === "General Practitioner"
+                    //  - doctors with empty/null specialization
+                    if (!spec) return true
+                    return spec.toLowerCase() === 'general practitioner'
+                }
+
+                // normal specialization filter
+                return spec === specialty
+            })
+        }
+
+        // 2) Apply text search (name or specialization)
+        const term = String(search || '').trim()
+        if (term) {
+            const regex = new RegExp(term, 'i')
+
+            filtered = filtered.filter((d) => {
+                const name = `${d.firstName || ''} ${d.lastName || ''}`
+                const rawSpec = d.doctorProfile?.specialty || ''
+                const spec = rawSpec.trim()
+
+                const nameMatch = regex.test(name)
+
+                // normal specialization match
+                let specMatch = regex.test(spec)
+
+                // if user types "General Practitioner" in search box,
+                // also treat empty/null specialization as a match
+                if (!spec && isGeneralPractitionerSearch) {
+                    specMatch = true
+                }
+
+                return nameMatch || specMatch
+            })
+
+            // prioritize name matches over specialization matches
+            const score = (d) => {
+                const name = `${d.firstName || ''} ${d.lastName || ''}`
+                const rawSpec = d.doctorProfile?.specialty || ''
+                const spec = rawSpec.trim()
+
+                const nameMatch = regex.test(name)
+
+                let specMatch = regex.test(spec)
+                if (!spec && isGeneralPractitionerSearch) {
+                    specMatch = true
+                }
+
+                if (nameMatch && specMatch) return 3
+                if (nameMatch) return 2
+                if (specMatch) return 1
+                return 0
+            }
+
+            filtered.sort((a, b) => score(b) - score(a))
+        }
+
+        const total = filtered.length
+        const start = (pageNum - 1) * pageSize
+        const end = start + pageSize
+        const pageItems = filtered.slice(start, end)
+
+        // attach photoUrl for cards
+        const doctorsWithPhoto = pageItems.map((d) => {
+            const docProfile = d.doctorProfile || {}
+            let photoUrl
+
+            if (docProfile.photo && docProfile.photo.data && docProfile.photo.contentType) {
+                const ver = docProfile.photo.updatedAt
+                    ? `?v=${new Date(docProfile.photo.updatedAt).getTime()}`
+                    : ''
+                photoUrl = `/api/doctors/${d._id}/photo${ver}`
+            }
+
+            return {
+                ...d,
+                doctorProfile: {
+                    ...docProfile,
+                    photoUrl
+                }
+            }
+        })
+
+        return res.status(200).json({
+            success: true,
+            doctors: doctorsWithPhoto,
+            page: pageNum,
+            pageSize,
+            total,
+            hasMore: end < total
+        })
     } catch (_err) {
         return res.status(500).json({ success: false, message: 'Internal Server Error' })
     }
