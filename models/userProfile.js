@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { type } from 'os'
 const { Schema } = mongoose
 
 // -------- Patient Profile --------
@@ -107,7 +108,10 @@ export const doctorProfileSchema = new Schema({
       message: 'Invalid work email format'
     }
   },
-  specialty: String,
+  specialty: {
+    type: String,
+    default: 'General Practitioner'
+  },
   bio: String,
   timezone: {
     type: String,
