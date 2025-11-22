@@ -268,22 +268,14 @@ export const searchDoctors = async (req, res) => {
             search = '',
             specialty,
             page = '1',
-            limit = '12'
+            limit = '3'
         } = req.query || {}
 
         const pageNum = Math.max(parseInt(page, 10) || 1, 1)
-        const pageSize = Math.max(parseInt(limit, 10) || 12, 1)
+        const pageSize = Math.max(parseInt(limit, 10) || 3, 1)
 
-        const normalizedTerm = String(search || '').trim().toLowerCase()
-        const normalizedSpecialty = String(specialty || '').trim().toLowerCase()
-        const isGeneralPractitionerSearch = normalizedTerm === 'general practitioner'
-        const isGeneralPractitionerFilter = normalizedSpecialty === 'general practitioner'
-
-        // Base query: only doctors.
-        // IMPORTANT: do NOT filter by specialty in the DB when "General Practitioner"
-        // is selected, because we also want doctors with empty/null specialty.
         const baseQuery = { role: 'DOCTOR' }
-        if (specialty && !isGeneralPractitionerFilter) {
+        if (specialty) {
             baseQuery['doctorProfile.specialty'] = specialty
         }
 
@@ -293,69 +285,26 @@ export const searchDoctors = async (req, res) => {
 
         let filtered = doctors
 
-        // 1) Apply specialty filter (dropdown) first
-        if (specialty) {
-            filtered = filtered.filter((d) => {
-                const rawSpec = d.doctorProfile?.specialty || ''
-                const spec = rawSpec.trim()
-
-                if (isGeneralPractitionerFilter) {
-                    // "General Practitioner" filter includes:
-                    //  - doctors with spec === "General Practitioner"
-                    //  - doctors with empty/null specialization
-                    if (!spec) return true
-                    return spec.toLowerCase() === 'general practitioner'
-                }
-
-                // normal specialization filter
-                return spec === specialty
-            })
-        }
-
-        // 2) Apply text search (name or specialization)
         const term = String(search || '').trim()
         if (term) {
-            const regex = new RegExp(term, 'i')
+            const regex = new RegExp(term, 'i') // case-insensitive
 
             filtered = filtered.filter((d) => {
-                const name = `${d.firstName || ''} ${d.lastName || ''}`
-                const rawSpec = d.doctorProfile?.specialty || ''
-                const spec = rawSpec.trim()
-
-                const nameMatch = regex.test(name)
-
-                // normal specialization match
-                let specMatch = regex.test(spec)
-
-                // if user types "General Practitioner" in search box,
-                // also treat empty/null specialization as a match
-                if (!spec && isGeneralPractitionerSearch) {
-                    specMatch = true
-                }
-
-                return nameMatch || specMatch
+                const name = `${d.firstName || ''} ${d.lastName || ''}`.trim()
+                return regex.test(name)
             })
 
-            // prioritize name matches over specialization matches
-            const score = (d) => {
-                const name = `${d.firstName || ''} ${d.lastName || ''}`
-                const rawSpec = d.doctorProfile?.specialty || ''
-                const spec = rawSpec.trim()
+            filtered.sort((a, b) => {
+                const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim()
+                const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim()
 
-                const nameMatch = regex.test(name)
+                const aMatch = regex.test(nameA)
+                const bMatch = regex.test(nameB)
 
-                let specMatch = regex.test(spec)
-                if (!spec && isGeneralPractitionerSearch) {
-                    specMatch = true
-                }
-
-                if (nameMatch && specMatch) return 3
-                if (nameMatch) return 2
-                if (specMatch) return 1
+                if (aMatch && !bMatch) return -1
+                if (!aMatch && bMatch) return 1
                 return 0
-            }
-
-            filtered.sort((a, b) => score(b) - score(a))
+            })
         }
 
         const total = filtered.length
