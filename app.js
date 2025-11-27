@@ -19,6 +19,8 @@ import availabilityRoutes from "./routes/availabilityRoutes.js";
 import Appointment from "./models/Appointment.js";
 import Availability from "./models/Availability.js";
 import doctorProfileRoutes from './routes/doctorProfile.routes.js'
+import testimonialRoutes from "./routes/testimonialRoutes.js";
+import Testimonial from "./models/Testimonial.js";
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -48,18 +50,18 @@ app.get('/api/me', auth, getUser)
 app.get('/api/users/:role', getUsers)
 app.put('/api/user/:id', updateUser)
 app.get('/api/doctors', listDoctors)
-
-
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use('/api/doctors', doctorProfileRoutes)
+app.use("/api/testimonials", testimonialRoutes);
 
 const start = async () => {
   try {
     await connectDB(mongoURI)
     await Appointment.syncIndexes();
     await Availability.syncIndexes();
-
+    await Testimonial.syncIndexes();
+    
     app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`)
     )
