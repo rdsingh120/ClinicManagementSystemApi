@@ -19,6 +19,7 @@ import availabilityRoutes from "./routes/availabilityRoutes.js";
 import Appointment from "./models/Appointment.js";
 import Availability from "./models/Availability.js";
 import doctorProfileRoutes from './routes/doctorProfile.routes.js'
+import testimonialRoutes from './routes/testimonial.routes.js';
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -53,6 +54,7 @@ app.get('/api/doctors', listDoctors)
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use('/api/doctors', doctorProfileRoutes)
+app.use('/api/testimonials', testimonialRoutes);
 
 const start = async () => {
   try {
