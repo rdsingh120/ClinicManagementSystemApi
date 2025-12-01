@@ -1,3 +1,4 @@
+// controllers/testimonial.controller.js
 import mongoose from "mongoose";
 import Testimonial from "../models/Testimonial.js";
 import User from "../models/user.model.js";
@@ -15,21 +16,29 @@ export const createOrUpdateTestimonial = async (req, res) => {
     }
 
     if (!doctorId || !isOid(doctorId)) {
-      return res.status(400).json({ success: false, message: "Invalid doctorId" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid doctorId" });
     }
 
     // doctor must be a DOCTOR user
     const doctor = await User.findById(doctorId).select("role");
     if (!doctor || doctor.role !== "DOCTOR") {
-      return res.status(400).json({ success: false, message: "Not a doctor" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Not a doctor" });
     }
 
     if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ success: false, message: "Rating must be 1–5" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Rating must be 1–5" });
     }
 
     if (typeof comment !== "string" || comment.trim().length < 1) {
-      return res.status(400).json({ success: false, message: "Comment is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Comment is required" });
     }
 
     // upsert ensures unique patient-doctor testimonial
@@ -42,20 +51,24 @@ export const createOrUpdateTestimonial = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Testimonial saved",
-      testimonial
+      testimonial,
     });
   } catch (e) {
     console.error("Testimonial save error:", e);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
   }
 };
 
-// LIST testimonials for a doctor
+// LIST testimonials for a doctor (used by doctor & public profile)
 export const getTestimonialsForDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
     if (!doctorId || !isOid(doctorId)) {
-      return res.status(400).json({ success: false, message: "Invalid doctorId" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid doctorId" });
     }
 
     const testimonials = await Testimonial.find({ doctorId })
@@ -65,11 +78,13 @@ export const getTestimonialsForDoctor = async (req, res) => {
     return res.status(200).json({
       success: true,
       count: testimonials.length,
-      testimonials
+      testimonials,
     });
   } catch (e) {
     console.error("Get testimonials error:", e);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -80,30 +95,40 @@ export const updateTestimonial = async (req, res) => {
     const { id } = req.params;
 
     if (!isOid(id)) {
-      return res.status(400).json({ success: false, message: "Invalid testimonial id" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid testimonial id" });
     }
 
     const testimonial = await Testimonial.findById(id);
     if (!testimonial) {
-      return res.status(404).json({ success: false, message: "Testimonial not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Testimonial not found" });
     }
 
     if (testimonial.patientId.toString() !== patientId) {
-      return res.status(403).json({ success: false, message: "Unauthorized" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized" });
     }
 
     const { rating, comment } = req.body;
 
     if (rating !== undefined) {
       if (rating < 1 || rating > 5) {
-        return res.status(400).json({ success: false, message: "Rating must be 1–5" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Rating must be 1–5" });
       }
       testimonial.rating = rating;
     }
 
     if (comment !== undefined) {
       if (typeof comment !== "string" || !comment.trim()) {
-        return res.status(400).json({ success: false, message: "Comment cannot be empty" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Comment cannot be empty" });
       }
       testimonial.comment = comment;
     }
@@ -113,10 +138,12 @@ export const updateTestimonial = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Testimonial updated",
-      testimonial
+      testimonial,
     });
   } catch (e) {
     console.error("Update testimonial error:", e);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
   }
 };
