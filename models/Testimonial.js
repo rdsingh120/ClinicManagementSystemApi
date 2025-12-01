@@ -29,6 +29,7 @@ const TestimonialSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// A patient can only leave one testimonial per doctor
 TestimonialSchema.index({ doctorId: 1, patientId: 1 }, { unique: true });
 
 export default mongoose.model("Testimonial", TestimonialSchema);
