@@ -11,7 +11,8 @@ const TestimonialSchema = new mongoose.Schema(
     patientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: false,
+      required: true,
+      index: true,
     },
     rating: {
       type: Number,
@@ -21,18 +22,13 @@ const TestimonialSchema = new mongoose.Schema(
     },
     comment: {
       type: String,
-      trim: true,
       required: true,
-    },
-    isVisible: {
-      type: Boolean,
-      default: true,
-      index: true,
+      trim: true,
     },
   },
   { timestamps: true }
 );
 
-TestimonialSchema.index({ doctorId: 1, createdAt: -1 });
+TestimonialSchema.index({ doctorId: 1, patientId: 1 }, { unique: true });
 
 export default mongoose.model("Testimonial", TestimonialSchema);
