@@ -28,15 +28,15 @@ const mongoURI = process.env.MONGO_URI
 app.use(helmet());
 app.use(
   cors({
-    origin: 'http://localhost:5173',
-    credentials: true,         // MUST be true if you send cookies
-    methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-    allowedHeaders: ["Content-Type","Authorization"]
+    origin: process.env.CLIENT_URL,
+    credentials: true, // MUST be true if you send cookies
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
-)
+);
 app.use(express.json())
 
-app.get('/health', (req, res) => {
+app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'App running OK',
